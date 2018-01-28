@@ -21,6 +21,7 @@ import java.util.List;
 
 public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NotesViewHolder> {
     public static final int NEW_NOTE_ACTIVTIY_REQUEST_CODE = 1;
+    private int adapterPositon;
 
     private List<Note> notesList = new ArrayList<>();
 
@@ -31,6 +32,8 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NotesViewHol
         view.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                adapterPositon = holder.getAdapterPosition();
+
                 Note note = notesList.get(holder.getAdapterPosition());
                 Intent intent = new Intent(parent.getContext(), NoteActivity.class);
                 intent.putExtra("TITLE", note.getTitle());
@@ -69,6 +72,10 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NotesViewHol
 
     public void addItems(List<Note> items){
             notesList.addAll(items);
+    }
+
+    public void updateItem(){
+        notifyItemChanged(adapterPositon);
     }
 
     public void addItem(Note note){

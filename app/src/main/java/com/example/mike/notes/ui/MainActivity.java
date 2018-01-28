@@ -160,6 +160,7 @@ public class MainActivity extends AppCompatActivity {
             note.setTitle(data.getStringExtra("TITLE"));
             note.setText(data.getStringExtra("TEXT"));
             note.setTime(data.getLongExtra("TIME", 1L));
+            adapter.updateItem();
             addToDb(note);
         }
     }
