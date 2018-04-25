@@ -44,6 +44,7 @@ public class NoteActivity extends AppCompatActivity {
                 note.setTime(System.currentTimeMillis());
                 note.setTitle(etTitle.getText().toString());
                 note.setText(etText.getText().toString());
+                int positon = getIntent().getIntExtra("POSITION", 0);
 
                 Intent replyIntent = new Intent();
 
@@ -51,6 +52,7 @@ public class NoteActivity extends AppCompatActivity {
                 replyIntent.putExtra("TEXT", note.getText());
                 replyIntent.putExtra("TIME", note.getTime());
                 replyIntent.putExtra("ID", note.getId());
+                replyIntent.putExtra("POSITION", positon);
                 setResult(RESULT_OK, replyIntent);
                 Toast.makeText(NoteActivity.this, "Note has been changed", Toast.LENGTH_SHORT).show();
                 finish();

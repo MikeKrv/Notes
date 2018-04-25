@@ -40,10 +40,12 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NotesViewHol
                 intent.putExtra("TEXT", note.getText());
                 intent.putExtra("TIME", note.getTime());
                 intent.putExtra("ID", note.getId());
+                intent.putExtra("POSITION", adapterPositon);
                 ((Activity)parent.getContext()).startActivityForResult(intent, NEW_NOTE_ACTIVTIY_REQUEST_CODE);
 
             }
         });
+        holder.setIsRecyclable(false);
         return holder;
     }
 
@@ -74,7 +76,8 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NotesViewHol
             notesList.addAll(items);
     }
 
-    public void updateItem(){
+    public void updateItem(Note note){
+        notesList.set(adapterPositon, note);
         notifyItemChanged(adapterPositon);
     }
 
@@ -82,7 +85,16 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NotesViewHol
         notesList.add(0, note);
     }
 
-    public void refresh(){
+//    public void refresh(){
+//        notesList.clear();
+//    }
+
+    public List<Note> getData(){
+        return notesList;
+    }
+
+    public void setData(List<Note> list){
         notesList.clear();
+        notesList.addAll(list);
     }
 }

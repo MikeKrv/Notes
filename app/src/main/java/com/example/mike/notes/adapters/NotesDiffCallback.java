@@ -37,6 +37,9 @@ public class NotesDiffCallback extends DiffUtil.Callback {
 
     @Override
     public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
-        return mOldNoteList.get(oldItemPosition).equals(mNewNoteList.get(newItemPosition));
+        Note oldNote = mOldNoteList.get(oldItemPosition);
+        Note newNote = mNewNoteList.get(newItemPosition);
+        return oldNote.getTime() == newNote.getTime();
+        //return mOldNoteList.get(oldItemPosition).equals(mNewNoteList.get(newItemPosition));
     }
 }

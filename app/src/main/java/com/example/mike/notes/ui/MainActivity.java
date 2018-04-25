@@ -7,6 +7,7 @@ import android.support.design.widget.TextInputLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.util.DiffUtil;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -20,14 +21,21 @@ import android.widget.Toast;
 
 import com.example.mike.notes.R;
 import com.example.mike.notes.adapters.NotesAdapter;
+import com.example.mike.notes.adapters.NotesDiffCallback;
 import com.example.mike.notes.model.Note;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Callable;
 
 import io.reactivex.Observable;
+import io.reactivex.ObservableSource;
+import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
+import io.reactivex.schedulers.Schedulers;
 import io.realm.Realm;
 import io.realm.RealmResults;
 import io.realm.Sort;
@@ -45,9 +53,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        notesList.clear();
-        adapter.refresh();
-        retrieveDataFromDb();
+        //notesList.clear();
+        //adapter.refresh();
+        //retrieveDataFromDb();
     }
 
     @Override
@@ -113,8 +121,8 @@ public class MainActivity extends AppCompatActivity {
         dialog.setOnShowListener(new DialogInterface.OnShowListener() {
             @Override
             public void onShow(DialogInterface dialog) {
-                final Button positiveButton = ((AlertDialog)dialog).getButton(DialogInterface.BUTTON_POSITIVE);
-                if (etTitle.getText().toString().isEmpty()){
+                final Button positiveButton = ((AlertDialog) dialog).getButton(DialogInterface.BUTTON_POSITIVE);
+                if (etTitle.getText().toString().isEmpty()) {
                     positiveButton.setEnabled(false);
                     tilTitle.setError("Empty Title");
                 }
@@ -126,7 +134,7 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onTextChanged(CharSequence s, int start, int before, int count) {
-                        if (s.length() == 0){
+                        if (s.length() == 0) {
                             positiveButton.setEnabled(false);
                             tilTitle.setError("Empty Title");
                         } else {
@@ -154,14 +162,35 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if(requestCode == NotesAdapter.NEW_NOTE_ACTIVTIY_REQUEST_CODE && resultCode == RESULT_OK){
+        if (requestCode == NotesAdapter.NEW_NOTE_ACTIVTIY_REQUEST_CODE && resultCode == RESULT_OK) {
             Note note = new Note();
             note.setId(data.getLongExtra("ID", 1L));
             note.setTitle(data.getStringExtra("TITLE"));
             note.setText(data.getStringExtra("TEXT"));
             note.setTime(data.getLongExtra("TIME", 1L));
-            adapter.updateItem();
+
+            notesList.set(data.getIntExtra("POSITION", 0), note);
+
+            Collections.sort(notesList, new Comparator<Note>() {
+                @Override
+                public int compare(Note o1, Note o2) {
+                    if(o1.getTime() > o2.getTime()){
+                        return -1;
+                    } else if(o1.getTime() < o2.getTime()){
+                        return 1;
+                    }
+                    return 0;
+                }
+            });
+
+            NotesDiffCallback notesDiffCallback = new NotesDiffCallback(adapter.getData(), notesList);
+            DiffUtil.DiffResult notesDiffResult = DiffUtil.calculateDiff(notesDiffCallback, false);
+            adapter.setData(notesList);
+            notesDiffResult.dispatchUpdatesTo(adapter);
+
+            //adapter.updateItem(note);
             addToDb(note);
+            //retrieveDataFromDb();
         }
     }
 
@@ -185,27 +214,43 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void retrieveDataFromDb() {
-        Observable<List<Note>> observer = Observable.fromCallable(getNotesFromRealmCallable());
-        observer.subscribe(new Consumer<List<Note>>() {
-            @Override
-            public void accept(List<Note> notes) throws Exception {
-                notesList.addAll(notes);
-                adapter.addItems(notesList);
-                adapter.notifyDataSetChanged();
-            }
-        });
+//        Observable<List<Note>> observer = Observable.fromCallable(getNotesFromRealmCallable());
+//
+//        observer.subscribe(new Consumer<List<Note>>() {
+//            @Override
+//            public void accept(List<Note> notes) throws Exception {
+//                notesList.addAll(notes);
+//                adapter.addItems(notesList);
+//                adapter.notifyDataSetChanged();
+//            }
+//        });
 
+        Observable.fromCallable(getNotesFromRealmCallable())
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Consumer<List<Note>>() {
+                    @Override
+                    public void accept(List<Note> notes) throws Exception {
+                        notesList.addAll(notes);
+                        adapter.addItems(notesList);
+                        adapter.notifyDataSetChanged();
+                    }
+                });
 
     }
 
-    public Callable<List<Note>> getNotesFromRealmCallable(){
+    public Callable<List<Note>> getNotesFromRealmCallable() {
         return new Callable<List<Note>>() {
             @Override
             public List<Note> call() throws Exception {
+
+                List<Note> notes = new ArrayList<>();
                 realm = Realm.getDefaultInstance();
                 RealmResults<Note> realmResults = realm.where(Note.class)
                         .distinctValues("id").sort("time", Sort.DESCENDING).findAll();
-                return realm.copyToRealm(realmResults);
+
+                notes = realm.copyFromRealm(realmResults);
+                return notes;
             }
         };
     }
